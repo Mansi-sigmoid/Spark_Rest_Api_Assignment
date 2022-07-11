@@ -64,9 +64,18 @@ def get_question_5():
 
 @app.route('/Ques6',methods=['GET'])
 def get_question_6():
-    SQL_Query_6=spark.sql("Select Stock_Name, avg(Open) from Stocks group by Stock_Name")
-    results = SQL_Query_6.toJSON().map(lambda j: json.loads(j)).collect()
-    return jsonify(results,200)
+    x = spark.sql("select Stock_Name,AVG(Open) from Stocks group by Stock_Name ")
+
+    results = x.toJSON().map(lambda j: json.loads(j)).collect()
+    y = spark.sql(
+        "select distinct * from (select Stock_Name,PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY Open) OVER (PARTITION BY Stock_Name) AS Median_UnitPrice from Stocks)")
+    results1 = y.toJSON().map(lambda j: json.loads(j)).collect()
+
+    final = {}
+    final["mean"] = results
+    final["median"] = results1
+
+    return jsonify(final, 200)
 
 
 @app.route('/Ques7',methods=['GET'])
