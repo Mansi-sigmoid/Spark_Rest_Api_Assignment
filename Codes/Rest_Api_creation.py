@@ -15,16 +15,24 @@ spark_df.createOrReplaceTempView("Stocks")
 
 @app.route('/Ques1',methods=['GET'])
 def get_question_1():
-    SQL_Query_1=spark.sql("Select Stock_Name, Max(High) as Highest,Min(Low) as Lowest from Stocks group by Stock_Name")
-    results = SQL_Query_1.toJSON().map(lambda j: json.loads(j)).collect()
-    return jsonify(results,200)
+    stock_moved_up_highest = spark.sql(
+        "WITH added_dense_rank AS (SELECT Date,Stocks_Name,(High-Open)/Open as up_Percentage, dense_rank() OVER ( partition by Date order by (High-Open)/Open desc ) as dense_rank FROM Stocks) select Date,Stocks_Name,up_Percentage FROM added_dense_rank where dense_rank=1")
+    stock_moved_up_lowest = spark.sql(
+        "WITH added_dense_rank AS (SELECT Date,Stocks_Name,(Open-Low)/Open as Down_Percentage, dense_rank() OVER ( partition by Date order by (Open-Low)/Open desc ) as dense_rank FROM Stocks) select Date,Stocks_Name,Down_Percentage FROM added_dense_rank where dense_rank=1")
+    stock_moved_up_lowest = stock_moved_up_lowest.withColumnRenamed("Stocks_Name", "maxdown_company")
+    stock_moved_up_highest = stock_moved_up_highest.withColumnRenamed("Stocks_Name", "maxup_company")
+    SQL_Query_1=stock_moved_up_highest.join(stock_moved_up_lowest, ['Date'], how='inner')
+    SQL_Query_1.show(20,False)
+    results=SQL_Query_1.toJSON().map(lambda j: json.loads(j)).collect()
+    return jsonify(results, 200)
 
 
 @app.route('/Ques2',methods=['GET'])
 def get_question_2():
-    SQL_Query_2=spark.sql("Select Date, Volume as Most_Traded from Stocks where Volume in (Select Max(Volume) from Stocks group by Date)")
+    SQL_Query_2 = spark.sql("WITH added_dense_rank AS (SELECT Date,Stocks_Name,Volume , dense_rank() OVER ( partition by Date order by Volume desc ) as dense_rank FROM data) select Date,CompanyName,Volume FROM added_dense_rank where dense_rank=1")
     results = SQL_Query_2.toJSON().map(lambda j: json.loads(j)).collect()
     return jsonify(results,200)
+
 
 
 @app.route('/Ques3',methods=['GET'])
