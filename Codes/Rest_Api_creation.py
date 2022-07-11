@@ -12,7 +12,8 @@ spark_df= spark.read.csv('/Users/mansigupta/Desktop/PyCharm/pythonProjects/pytho
 
 spark_df.createOrReplaceTempView("Stocks")
 
-
+#Endpoint name can be more meaningful so it would be easier for other while testing API
+#For eg. question endpoint can renamed as "stock_moved_up_or_down"
 @app.route('/Ques1',methods=['GET'])
 def get_question_1():
     stock_moved_up_highest = spark.sql(
@@ -32,7 +33,9 @@ def get_question_2():
     SQL_Query_2 = spark.sql("WITH added_dense_rank AS (SELECT Date,Stocks_Name,Volume , dense_rank() OVER ( partition by Date order by Volume desc ) as dense_rank FROM data) select Date,CompanyName,Volume FROM added_dense_rank where dense_rank=1")
     results = SQL_Query_2.toJSON().map(lambda j: json.loads(j)).collect()
     return jsonify(results,200)
-
+#DataFrame name is not proper in Ques2 and it will not work as it worked for other problems.
+#please update it accordingly.
+#data >> stocks
 
 
 @app.route('/Ques3',methods=['GET'])
@@ -40,7 +43,9 @@ def get_question_3():
     SQL_Query_3=spark.sql("with added_previous_close as (select Stock_Name,Open,Date,Close,LAG(Close,1,35.724998) over(partition by Stock_Name order by Date) as previous_close from data ASC) select CompanyName,ABS(previous_close-Open) as max_swing from added_previous_close order by max_swing DESC ").show()
     results = SQL_Query_3.toJSON().map(lambda j: json.loads(j)).collect()
     return jsonify(results,200)
-
+#DataFrame name is not proper in Ques3 and it will not work as it worked for other problems.
+#please update it accordingly.
+#data >> stocks
 
 @app.route('/Ques4',methods=['GET'])
 def get_question_4():
